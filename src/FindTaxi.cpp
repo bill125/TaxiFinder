@@ -2715,7 +2715,7 @@ void loadEdge()
 	fin.close();
 }
 
-void findBestPath(vector<int> & passenger, int step, vector<bool> & v, int & ans, int last, int sum)
+void findBestPath(vector<int> & passenger, int step, vector<bool> & v, int & ans, int last, int sum, int dis[10][10])
 {
 	if (sum >= ans) {
 		return ;
@@ -2729,8 +2729,8 @@ void findBestPath(vector<int> & passenger, int step, vector<bool> & v, int & ans
 			if (!v[i]) {
 				v[i] = true;
 				int x = passenger[i];
-				int delta = tree.search_catch(last, x);				
-				findBestPath(passenger, step + 1, v, ans, x, sum + delta);
+				int delta = dis[last][x];			
+				findBestPath(passenger, step + 1, v, ans, x, sum + delta, dis);
 				v[i] = false;
 			}
 		}
@@ -2828,52 +2828,41 @@ void loadCars()
 	cout << "load_cars end" << endl;
 }
 
+int dis[10][10];
+
 vector<int> searchTaxi(int S, int T, int K)
 {
 	int D4 = tree.search(S, T);
-	vector<bool> v(eH.size(), false);
 
 	vector<int> ans;
 	ans.clear();
 	int taxi_cnt = taxi.size();
+	cout << taxi.size() << endl;
 
-	queue<int> Q;
-	while (!Q.empty()) Q.pop();
-
-	Q.push(S);
-	v[S] = true;
-
-	cout << "begin bfs" << endl;
-
-	while (!Q.empty()) {
-		int x = Q.front();
-		Q.pop();
-
+	for (int i = 0; i < taxi_cnt; ++ i) {
+		int x = taxi[i];
+		if (Distance_(clngt[x], clat[x], clngt[S], clat[S]) > 10000.) continue;
+		if (passenger[i].size() >= 4) continue;
 		int D2 = tree.search(x, S);
-		assert(x < node_list.size());
-		int t = node_list[x].size();
-		for (int j = 0; j < t; ++ j) {
-			int i = node_list[x][j];
-			int D3 = 1000000000;
-			vector<bool> vis(10, false);
-			vector<int> now_pass = passenger[i];
-			now_pass.push_back(T);
-			findBestPath(now_pass, 0, vis, D3, S, 0);
-			if (D3 - D4 > 10000) continue;
-			if (D1[i] > 0 && D2 + D3 - D1[i] > 10000) continue;
-			ans.push_back(i);
-			if (ans.size() >= K)
-				break;
-		}
-		if (ans.size() >= K)
-			break;
-
-		for (Edge *e = eH[x]; e != NULL; e = e->next) {
-			if (!v[e->to] && e->c + D2 <= 10000) {
-				v[e->to] = true;
-				Q.push(e->to);
+		if (D2 > 10000) continue;
+		int D3 = 1000000000;
+		vector<bool> vis(10, false);
+		vector<int> now_pass = passenger[i];
+		now_pass.push_back(T);
+		int p = now_pass.size();
+		for (int k1 = 0; k1 < p; ++ k1) {
+			for (int k2 = 0; k2 < p; ++ k2) {
+				if (k1 == k2) dis[k1][k2] = 0;
+				else if (k1 < k2) dis[k1][k2] = tree.search(now_pass[k1], now_pass[k2]);
+				else dis[k1][k2] = dis[k2][k1];
 			}
 		}
+		findBestPath(now_pass, 0, vis, D3, S, 0, dis);
+		if (D3 - D4 > 10000) continue;
+		if (D2 + D3 - D1[i] > 10000) continue;
+		ans.push_back(i);
+		if (ans.size() >= K)
+			break;
 	}
 	cout << "Taxi searching finish." << endl;
 	return ans;
@@ -2957,7 +2946,7 @@ void runServer()
             cout << "road_net_no:" << endl;
             cout << start_no << " " << dest_no << endl;
 			vector<int> canTaxi;
-			canTaxi = searchTaxi(start_no, dest_no, 6);
+			canTaxi = searchTaxi(start_no, dest_no, 5);
 			int m = canTaxi.size();
 			cout << m << " Taxis found." << endl;
 			string tmpSed = "";
@@ -2966,24 +2955,25 @@ void runServer()
 				int x = canTaxi[i];
 				cout << "Taxi: " << x << endl;
 				vector<int> now_pass = passenger[x];
+				if (now_pass.size() >= 4) continue;
 				now_pass.push_back(dest_no);
 				cout << "now_pass: " << now_pass.size() << endl;
 
 				cout << "passenger: ";
-				for (int i = 0; i < now_pass.size(); ++ i)
-					cout << clngt[now_pass[i]] << " " << clat[now_pass[i]] << " ";
-				cout << endl;
+				// for (int i = 0; i < now_pass.size(); ++ i)
+				// 	cout << clngt[now_pass[i]] << " " << clat[now_pass[i]] << " ";
+				// cout << endl;
 	
 				vector<int> route(now_pass.size()), res_route(now_pass.size());
 				vector<bool> v(10, false);
 				int ans = 100000000;
 				findBestPath(now_pass, 0, v, ans, start_no, 0, route, res_route);
-				cout << "Best Path:" << ans << endl;
+				// cout << "Best Path:" << ans << endl;
 
-				cout << "res_route: ";
-				for (int i = 0; i < res_route.size(); ++ i)
-					cout << clngt[res_route[i]] << " " << clat[res_route[i]] << " ";
-				cout << endl;
+				// cout << "res_route: ";
+				// for (int i = 0; i < res_route.size(); ++ i)
+				// 	cout << clngt[res_route[i]] << " " << clat[res_route[i]] << " ";
+				// cout << endl;
 
 				res_route.push_back(0);
 				for(int i = res_route.size() - 1; i >= 1; -- i) res_route[i] = res_route[i - 1];
@@ -2994,10 +2984,6 @@ void runServer()
 				cout << "res_route: " << res_route.size() << endl;
 				vector<int> ans_route;
 				completePath(res_route, ans_route);
-				cout << "ans_route: ";
-				for (int i = 0; i < ans_route.size(); ++ i)
-					cout << clngt[ans_route[i]] << " " << clat[ans_route[i]];
-				cout << endl;
 
 				vector<double> lngt;
 				vector<double> lat;

@@ -54,7 +54,7 @@
 		var routes = str.split(';')
 
 		console.log(str);
-		for (var i = 0; i < routes.length - 2; ++ i) {
+		for (var i = 0; i < routes.length - 1; ++ i) {
 			console.log(routes[i])
 			var pts = [];
 			var pos = routes[i].split(',');
@@ -106,6 +106,16 @@
         var start_lat = document.getElementById("start_lat").value;
         var dest_lgt = document.getElementById("dest_lgt").value;
 		var dest_lat = document.getElementById("dest_lat").value;
+
+		map.clearOverlays();
+		lng = document.getElementById("start_lgt").value;
+		lat = document.getElementById("start_lat").value;
+		var marker = new BMap.Marker(new BMap.Point(lng, lat)); 
+		map.addOverlay(marker);
+		lng = document.getElementById("dest_lgt").value;
+		lat = document.getElementById("dest_lat").value;
+		var marker = new BMap.Marker(new BMap.Point(lng, lat)); 
+		map.addOverlay(marker);
 		
 		client.write(start_lgt + "," + start_lat + "," + dest_lgt + "," + dest_lat);
      
